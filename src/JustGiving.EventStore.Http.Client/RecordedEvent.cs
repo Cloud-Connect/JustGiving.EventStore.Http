@@ -9,6 +9,7 @@ namespace JustGiving.EventStore.Http.Client
         public long EventNumber { get; set; }
         public string EventType { get; set; }
         public JToken Data { get; set; }
+        public JToken Metadata { get; set; }
 
         public T GetObject<T>() where T : class
         {

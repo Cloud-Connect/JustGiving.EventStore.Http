@@ -54,7 +54,16 @@ namespace JustGiving.EventStore.Http.SubscriberHost
         {
             return new EventStreamSubscriber(EventStreamSubscriberSettings.Default(connection, eventHandlerResolver, streamPositionRepository));
         }
-
+        public static IEventStreamSubscriber Create(IEventStoreHttpConnection connection, Action<Client.EventInfo> rawEventhandler,  IStreamPositionRepository streamPositionRepository)
+        {
+            //hack Fix the builder!
+            return new EventStreamSubscriber(EventStreamSubscriberSettings.Default(connection, null, streamPositionRepository),rawEventhandler);
+        }
+        internal EventStreamSubscriber(EventStreamSubscriberSettings settings, Action<Client.EventInfo> rawEventhandler) :
+            this(settings)
+        {
+            _rawHandler = rawEventhandler;
+        }
         internal EventStreamSubscriber(EventStreamSubscriberSettings settings)
         {
             _connection = settings.Connection;
@@ -79,7 +88,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
         public void SubscribeTo(string stream, string subscriberId, TimeSpan? pollInterval = null)
         {
             lock (_synchroot)
-            {
+            {            
                 var interval = pollInterval ?? _defaultPollingInterval;
                 Log.Info(_log, "Subscribing to {0}|{1} with an interval of {2}", stream, subscriberId ?? "default", interval);
                 _subscriptionTimerManager.Add(stream, subscriberId, interval, async () => await PollAsync(stream, subscriberId).ConfigureAwait(false), () => StreamSubscriberMonitor.UpdateEventStreamSubscriberIntervalMonitor(stream, interval, subscriberId));
@@ -99,7 +108,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                 Log.Info(_log, "Stream ticks monitor removed from {0}|{1}", stream, subscriberId ?? "default");
             }
         }
-
+        private Action<Client.EventInfo> _rawHandler;
         public async Task<AdHocInvocationResult> AdHocInvokeAsync(string stream, int eventNumber, string subscriberId = null)
         {
             var eventMetadata = await _connection.ReadEventAsync(stream, eventNumber).ConfigureAwait(false);
@@ -110,6 +119,11 @@ namespace JustGiving.EventStore.Http.SubscriberHost
             }
 
             var eventInfo = eventMetadata.EventInfo;
+            if (_rawHandler != null)
+            {
+                _rawHandler(eventInfo);
+                return new AdHocInvocationResult(AdHocInvocationResult.AdHocInvocationResultCode.Success);
+            }
 
             var handlers = GetEventHandlersFor(eventInfo.EventType, subscriberId);
 
@@ -159,7 +173,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                 var lastPosition = await _streamPositionRepository.GetPositionForAsync(stream, subscriberId).ConfigureAwait(false) ?? -1;
 
                 Log.Debug(_log, "{0}|{1}: Last position for stream was {2}", stream, subscriberId ?? "default", lastPosition);
-                Log.Debug(_log, "{0}|{1}: Begin reading event metadata", stream, subscriberId??"default");
+                Log.Debug(_log, "{0}|{1}: Begin reading event metadata", stream, subscriberId ?? "default");
 
                 var processingBatch =
                     await _connection.ReadStreamEventsForwardAsync(stream, lastPosition + 1, _sliceSize, _longPollingTimeout).ConfigureAwait(false);
@@ -254,7 +268,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                 return handlers.Where(x => !x.GetType().GetCustomAttributes<NonDefaultSubscriberAttribute>().Any());
             }
 
-            return handlers.Where(x =>x.GetType().GetCustomAttributes<NonDefaultSubscriberAttribute>()
+            return handlers.Where(x => x.GetType().GetCustomAttributes<NonDefaultSubscriberAttribute>()
                                        .Any(att => att.SupportedSubscriberId == subscriberId));
         }
 
@@ -336,7 +350,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                 {
                     try
                     {
-                        var arguments = new[] {@event, eventInfo}.Take(handleMethod.GetParameters().Length);
+                        var arguments = new[] { @event, eventInfo }.Take(handleMethod.GetParameters().Length);
                         await ((Task)handleMethod.Invoke(handler, arguments.ToArray())).ConfigureAwait(false);
                     }
                     catch (Exception invokeException)
@@ -376,7 +390,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                 return result;
             }
 
-            var handlerInterfaces = new[] {typeof (IHandleEventsOf<>), typeof (IHandleEventsAndMetadataOf<>)};
+            var handlerInterfaces = new[] { typeof(IHandleEventsOf<>), typeof(IHandleEventsAndMetadataOf<>) };
 
             var @interface = concreteHandlerType.GetInterfaces()
                 .Where(x => x.IsGenericType && handlerInterfaces.Contains(x.GetGenericTypeDefinition()) && x.GetGenericArguments()[0].IsAssignableFrom(eventType))
