@@ -235,8 +235,9 @@ namespace JustGiving.EventStore.Http.Client
                     throw;
                 }
             }
-        }
 
+        }
+   
         public async Task<T> ReadEventBodyAsync<T>(string stream, int eventNumber) where T: class
         {
             var url = GetCanonicalURIFor(stream, eventNumber);

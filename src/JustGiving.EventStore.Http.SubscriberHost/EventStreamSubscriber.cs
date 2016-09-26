@@ -54,10 +54,11 @@ namespace JustGiving.EventStore.Http.SubscriberHost
         {
             return new EventStreamSubscriber(EventStreamSubscriberSettings.Default(connection, eventHandlerResolver, streamPositionRepository));
         }
-        public static IEventStreamSubscriber Create(IEventStoreHttpConnection connection, Action<Client.EventInfo> rawEventhandler,  IStreamPositionRepository streamPositionRepository)
+        public static IEventStreamSubscriber Create(IEventStoreHttpConnection connection, Action<Client.EventInfo> rawEventhandler, IStreamPositionRepository streamPositionRepository)
         {
-            //hack Fix the builder!
-            return new EventStreamSubscriber(EventStreamSubscriberSettings.Default(connection, null, streamPositionRepository),rawEventhandler);
+            var builder = new EventStreamSubscriberSettingsBuilder(connection, null, streamPositionRepository)
+                .WithDefaultPollingInterval(TimeSpan.FromSeconds(1));
+            return new EventStreamSubscriber(builder, rawEventhandler);
         }
         internal EventStreamSubscriber(EventStreamSubscriberSettings settings, Action<Client.EventInfo> rawEventhandler) :
             this(settings)
@@ -88,7 +89,7 @@ namespace JustGiving.EventStore.Http.SubscriberHost
         public void SubscribeTo(string stream, string subscriberId, TimeSpan? pollInterval = null)
         {
             lock (_synchroot)
-            {            
+            {
                 var interval = pollInterval ?? _defaultPollingInterval;
                 Log.Info(_log, "Subscribing to {0}|{1} with an interval of {2}", stream, subscriberId ?? "default", interval);
                 _subscriptionTimerManager.Add(stream, subscriberId, interval, async () => await PollAsync(stream, subscriberId).ConfigureAwait(false), () => StreamSubscriberMonitor.UpdateEventStreamSubscriberIntervalMonitor(stream, interval, subscriberId));
@@ -185,10 +186,11 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                     Log.Debug(_log, "{0}|{1}: Processing {2} events", stream, subscriberId ?? "default", processingBatch.Entries.Count);
                     foreach (var message in processingBatch.Entries)
                     {
+
                         var handlers = GetEventHandlersFor(message.EventType, subscriberId);
                         AllEventsStats.MessageProcessed(stream);
 
-                        if (handlers.Any())
+                        if (_rawHandler != null || (handlers?.Any() ?? false))
                         {
                             await ProcessSingleMessageAsync(stream, _eventTypeResolver.Resolve(message.EventType), handlers, message, subscriberId).ConfigureAwait(false);
                             ProcessedEventsStats.MessageProcessed(stream);
@@ -234,6 +236,9 @@ namespace JustGiving.EventStore.Http.SubscriberHost
 
         public IEnumerable<object> GetEventHandlersFor(string eventTypeName, string subscriberId)
         {
+            if (_rawHandler != null)
+                return null;
+
             var eventType = _eventTypeResolver.Resolve(eventTypeName);
             if (eventType == null)
             {
@@ -291,7 +296,12 @@ namespace JustGiving.EventStore.Http.SubscriberHost
                 try
                 {
                     Log.Debug(_log, "{0}|{1}: Processing event {2}. Attempt: {3}", stream, subscriberId ?? "default", eventInfo.Id, i + 1);
-
+                    if (handlers == null && _rawHandler != null)
+                    {
+                        var json = await _connection.ReadEventAsync(eventInfo.CanonicalEventLink).ConfigureAwait(false);
+                        _rawHandler(json.EventInfo);
+                        return;
+                    }
                     @event = await _connection.ReadEventBodyAsync(eventType, eventInfo.CanonicalEventLink).ConfigureAwait(false);
                     if (@event != null)
                     {
