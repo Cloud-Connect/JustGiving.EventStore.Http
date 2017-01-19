@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>JustGiving.EventStore.Client</id>
+    <version>1.0.0</version>
+    <authors>pki</authors>
+    <owners>PKI</owners>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>NuGet package for justgiving event store client</description>
+    <releaseNotes>Initial release</releaseNotes>
+    <copyright>Copyright 2016</copyright>
+    <tags>reactive domain cqrs event store</tags>
+  </metadata>
+  <files>
+    <file src="C:\Users\ThurmaAL\Source\Repos\JustGiving.EventStore.Http\src\JustGiving.EventStore.Http.Client\bin\x64\Debug\*.*" target="lib" />   <!-- had to put full path here -->
+    <file src="C:\Users\ThurmaAL\Source\Repos\JustGiving.EventStore.Http\src\JustGiving.EventStore.Http.SubscriberHost\bin\x64\Debug\JustGiving.EventStore.Http.SubscriberHost.dll" target="lib" />   <!-- had to put full path here -->  
+  </files>  
+  
+</package>
