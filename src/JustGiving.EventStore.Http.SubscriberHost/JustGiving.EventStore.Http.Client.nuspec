@@ -17,8 +17,10 @@
     </dependencies>
   </metadata>
   <files>
-    <file src="..\JustGiving.EventStore.Http.SubscriberHost\bin\x64\Debug\JustGiving.EventStore.Http.Client.dll" target="lib" />   <!-- had to put full path here -->
-    <file src="..\JustGiving.EventStore.Http.SubscriberHost\bin\x64\Debug\JustGiving.EventStore.Http.SubscriberHost.dll" target="lib" />   <!-- had to put full path here -->  
+    <file src="..\JustGiving.EventStore.Http.SubscriberHost\bin\x64\Debug\JustGiving.EventStore.Http.Client.dll" target="lib" />   
+    <file src="..\JustGiving.EventStore.Http.SubscriberHost\bin\x64\Debug\JustGiving.EventStore.Http.Client.pdb" target="lib" />    
+    <file src="..\JustGiving.EventStore.Http.SubscriberHost\bin\x64\Debug\JustGiving.EventStore.Http.SubscriberHost.dll" target="lib" />
+    <file src="..\JustGiving.EventStore.Http.SubscriberHost\bin\x64\Debug\JustGiving.EventStore.Http.SubscriberHost.pdb" target="lib" />       
   </files>  
   
 </package>
