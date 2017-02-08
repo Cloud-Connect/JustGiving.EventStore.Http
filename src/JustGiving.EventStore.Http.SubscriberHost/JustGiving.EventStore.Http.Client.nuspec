@@ -2,7 +2,7 @@
 <package >
   <metadata>
     <id>JustGiving.EventStore.Client</id>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
     <authors>pki</authors>
     <owners>PKI</owners>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
@@ -11,9 +11,9 @@
     <copyright>Copyright 2017</copyright>
     <tags>reactive domain cqrs event store</tags>
     <dependencies>
-      <dependency id="Newtonsoft.Json" version="9.0" />
-      <dependency id="log4net" version="2.0" />
-      <dependency id="Microsoft.Net.Http" version="2.2" /> 
+      <dependency id="Newtonsoft.Json" version="9.0.1" />
+      <dependency id="log4net" version="2.0.7" />
+      <dependency id="Microsoft.Net.Http" version="2.2.29" /> 
     </dependencies>
   </metadata>
   <files>
